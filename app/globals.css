@@ -11,3 +11,15 @@
 .no-focus {
   @apply focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 !important;
 }
+
+.screen {
+  @apply h-screen w-screen overflow-auto;
+}
+
+.full {
+  @apply w-full h-full;
+}
+
+.center {
+  @apply flex justify-center items-center;
+}

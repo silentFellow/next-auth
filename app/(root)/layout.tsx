@@ -20,7 +20,9 @@ export default async function RootLayout({
     <html lang="en">
       <body>
         <Provider session={session}>
-          {children}
+          <main className="min-h-screen w-full max-w-6xl mx-auto p-9">
+            {children}
+          </main>
         </Provider>
       </body>
     </html>

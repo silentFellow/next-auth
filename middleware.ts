@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-const userRoutes: string[] = [ "/blog/read-blog/:blog_id", '/blog/create-blog', "/" ]
+const userRoutes: string[] = [ "/blog/read-blog/:blog_id", '/blog/create-blog', "/", "/subscribe" ]
 const adminRoutes: string[] = [ "/blog/create-blog" ]
 const superAdminRoutes: string[] = [ "/blog/create-blog" ]
 

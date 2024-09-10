@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { uservalidation } from "@/lib/validation/users.validation";
+import { userValidation } from "@/lib/validation/users.validation";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,21 +14,21 @@ const LoginForm = () => {
   const router = useRouter();
 
   const form = useForm({
-    resolver: zodResolver(uservalidation),
+    resolver: zodResolver(userValidation),
     defaultValues: {
       username: "",
       password: ""
     }
   })
 
-  const onSubmit = async (value: z.infer<typeof uservalidation>) => {
+  const onSubmit = async (value: z.infer<typeof userValidation>) => {
     try {
       const res = await signIn('credentials', {
         username: value.username,
         password: value.password,
         redirect: false
       });
-      if(res?.ok) router.push("/");
+      if(res?.ok) router.push("/create-blog");
     } catch(error: any) {
       console.log(`Error: ${error.message}`)
     }
