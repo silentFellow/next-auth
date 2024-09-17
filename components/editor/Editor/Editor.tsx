@@ -25,7 +25,6 @@ import {createWebsocketProvider} from './collaboration';
 import {useSettings} from './context/SettingsContext';
 import {useSharedHistoryContext} from './context/SharedHistoryContext';
 import ActionsPlugin from './plugins/ActionsPlugin';
-import SubmitPlugin from "./plugins/SubmitPlugin";
 import AutocompletePlugin from './plugins/AutocompletePlugin';
 import AutoEmbedPlugin from './plugins/AutoEmbedPlugin';
 import AutoLinkPlugin from './plugins/AutoLinkPlugin';
@@ -64,10 +63,25 @@ import ToolbarPlugin from './plugins/ToolbarPlugin';
 import TwitterPlugin from './plugins/TwitterPlugin';
 import YouTubePlugin from './plugins/YouTubePlugin';
 import ContentEditable from './ui/ContentEditable';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+
+import { useEditorState } from '@/contexts/EditorContext';
 
 const skipCollaborationInit = window.parent != null && window.parent.frames.right === window;
 
 export default function Editor(): JSX.Element {
+  const [editor] = useLexicalComposerContext();
+  const { setEditorState } = useEditorState();
+
+  useEffect(() => {
+    return editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        const json = JSON.stringify(editorState);
+        setEditorState(json);
+      });
+    });
+  }, [editor, setEditorState]);
+
   const {historyState} = useSharedHistoryContext();
   const {
     settings: {
@@ -230,7 +244,6 @@ export default function Editor(): JSX.Element {
           isRichText={isRichText}
           shouldPreserveNewLinesInMarkdown={shouldPreserveNewLinesInMarkdown}
         />
-        <SubmitPlugin />
       </div>
     </>
   );

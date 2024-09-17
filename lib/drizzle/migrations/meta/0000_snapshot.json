@@ -1,5 +1,5 @@
 {
-  "id": "157d644e-69f5-418f-a7fc-87174cdd55c7",
+  "id": "698ceec7-e76c-458e-8aab-1e4d32bb7701",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -10,15 +10,22 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "tags": {
           "name": "tags",
-          "type": "varchar(12)[]",
+          "type": "uuid[]",
           "primaryKey": false,
           "notNull": false
+        },
+        "author": {
+          "name": "author",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
         },
         "title": {
           "name": "title",
@@ -31,16 +38,36 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "thumbnail": {
+          "name": "thumbnail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "blogs_id_users_id_fk": {
-          "name": "blogs_id_users_id_fk",
+        "blogs_author_users_id_fk": {
+          "name": "blogs_author_users_id_fk",
           "tableFrom": "blogs",
           "tableTo": "users",
           "columnsFrom": [
-            "id"
+            "author"
           ],
           "columnsTo": [
             "id"
@@ -50,24 +77,23 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "blogs_id_unique": {
-          "name": "blogs_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
-        }
-      }
+      "uniqueConstraints": {}
     },
     "public.tags": {
       "name": "tags",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
         "name": {
           "name": "name",
           "type": "varchar(12)",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true
         }
       },
@@ -90,9 +116,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "name": {
           "name": "name",
@@ -117,13 +144,6 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "users_id_unique": {
-          "name": "users_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
-        },
         "users_name_unique": {
           "name": "users_name_unique",
           "nullsNotDistinct": false,

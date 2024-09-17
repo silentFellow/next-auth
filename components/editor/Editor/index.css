@@ -1095,14 +1095,6 @@ i.page-break,
   text-align: right;
   margin: 10px;
   bottom: 0;
-  left: 0;
-}
-
-.actions.submit-button {
-  position: absolute;
-  text-align: right;
-  margin: 10px;
-  bottom: 0;
   right: 0;
 }
 

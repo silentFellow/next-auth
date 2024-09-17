@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { blogValidation, tagValidation } from "@/lib/validation/blogs.validation";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -9,9 +10,11 @@ import { z } from "zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import Editor from '@/components/editor/Editor';
-import { createTag } from '@/lib/actions/blog.actions';
+import { createBlog, createTag } from '@/lib/actions/blog.actions';
+
+import { useEditorState } from '@/contexts/EditorContext';
 
 interface Props {
   user: {
@@ -20,12 +23,17 @@ interface Props {
     username: string
   },
   tags: {
+    id: string
     name: string
   }[]
 }
 
 const BlogForm = ({ user, tags }: Props) => {
+  const { editorState } = useEditorState();
   const pathname = usePathname();
+  const router = useRouter();
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const blogForm = useForm({
     resolver: zodResolver(blogValidation),
@@ -45,13 +53,29 @@ const BlogForm = ({ user, tags }: Props) => {
   })
 
   const blogSubmit = async (value: z.infer<typeof blogValidation>) => {
-    console.log(value);
+    value.content = JSON.parse(editorState);
+
+    try {
+      const res = await createBlog({
+        title: value.title,
+        author: value.author,
+        tags: value.tags,
+        content: value.content
+      })
+      console.log(res)
+      if(res && res.status === 200) router.push("/")
+    } catch(error: any) {
+      console.log(`Failed to post blog: ${error.message}`)
+    }
   }
 
   const tagSubmit = async (value: z.infer<typeof tagValidation>) => {
     try {
       const res = await createTag(value.name, pathname);
-      console.log(res);
+      if (res && res.status === 200) {
+        setIsDialogOpen(false); // Close the dialog
+        console.log(res.message); // Ensure the message is logged
+      }
     } catch(error: any) {
       console.error(`Failed to create tag: ${error.message}`)
     }
@@ -74,7 +98,7 @@ const BlogForm = ({ user, tags }: Props) => {
                 name="title"
                 render={({ field }) => (
                   <FormItem className="flex flex-col w-full sm:w-[70%]">
-                    <FormLabel className="text-[16px] leading-[140%] font-[600px] text-light-2">Username</FormLabel>
+                    <FormLabel className="text-[16px] leading-[140%] font-[600px] text-light-2">Title</FormLabel>
                     <FormControl>
                       <Input
                         type="text"
@@ -93,7 +117,7 @@ const BlogForm = ({ user, tags }: Props) => {
                 name="tags"
                 render={({ field }) => (
                   <FormItem className="flex flex-col w-full sm:w-[30%]">
-                    <FormLabel className="text-[16px] leading-[140%] font-[600px] text-light-2">Username</FormLabel>
+                    <FormLabel className="text-[16px] leading-[140%] font-[600px] text-light-2">Tags</FormLabel>
 
                     <FormControl>
                       <DropdownMenu>
@@ -103,7 +127,7 @@ const BlogForm = ({ user, tags }: Props) => {
 
                         <DropdownMenuContent className="w-56">
 
-                        <Dialog>
+                        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                           <DialogTrigger asChild>
                             <Button variant="outline" className='w-full'>Create Tag</Button>
                           </DialogTrigger>
@@ -146,14 +170,14 @@ const BlogForm = ({ user, tags }: Props) => {
                         </Dialog>
 
                         <DropdownMenuSeparator />
-                        {tags.map((tag: {name: string}) => (
+                        {tags.map((tag: {name: string, id: string}) => (
                           <DropdownMenuCheckboxItem
-                            key={tag.name}
-                            checked={(field.value as string[]).includes(tag.name)}
+                            key={tag.id}
+                            checked={(field.value as string[]).includes(tag.id)}
                             onCheckedChange={(checked) => {
                               const newValue = checked
-                                ? [...(field.value as string[]), tag.name]
-                                : (field.value as string[]).filter((value: string) => value !== tag.name);
+                                ? [...(field.value as string[]), tag.id]
+                                : (field.value as string[]).filter((value: string) => value !== tag.id);
                               field.onChange(newValue);
                             }}
                           >
@@ -174,7 +198,7 @@ const BlogForm = ({ user, tags }: Props) => {
               <FormField
                 control={blogForm.control}
                 name="content"
-                render={({ field }) => (
+                render={() => (
                   <FormItem className="flex flex-col w-full">
                     <FormLabel className="text-[16px] leading-[140%] font-[600px] text-light-2">Content</FormLabel>
                     <FormControl>
@@ -186,6 +210,7 @@ const BlogForm = ({ user, tags }: Props) => {
               />
             </div>
 
+            <Button type="submit" className="bg-black">Post Blog</Button>
           </form>
         </Form>
 

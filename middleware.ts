@@ -2,15 +2,28 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-const userRoutes: string[] = [ "/blog/read-blog/:blog_id", '/blog/create-blog', "/", "/subscribe" ]
-const adminRoutes: string[] = [ "/blog/create-blog" ]
-const superAdminRoutes: string[] = [ "/blog/create-blog" ]
+const userRoutes: string[] = [ "/read-blog/:blog_id", '/create-blog', "/", "/subscribe" ];
+const adminRoutes: string[] = [];
+const superAdminRoutes: string[] = [];
 
 const userRoles = {
   user: 3,
   admin: 2,
   superadmin: 1,
 };
+
+function matchRoute(route: string, path: string): boolean {
+  const routeSegments = route.split('/').filter(Boolean);
+  const pathSegments = path.split('/').filter(Boolean);
+
+  if (routeSegments.length !== pathSegments.length) {
+    return false;
+  }
+
+  return routeSegments.every((segment, index) => {
+    return segment.startsWith(':') || segment === pathSegments[index];
+  });
+}
 
 export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
@@ -20,15 +33,19 @@ export async function middleware(request: NextRequest) {
 
   const role = token.role as keyof typeof userRoles;
 
-  if (superAdminRoutes.includes(request.nextUrl.pathname) && userRoles[role] <= userRoles["superadmin"]) {
+  const isSuperAdminRoute = superAdminRoutes.some((route) => matchRoute(route, request.nextUrl.pathname));
+  const isAdminRoute = adminRoutes.some((route) => matchRoute(route, request.nextUrl.pathname));
+  const isUserRoute = userRoutes.some((route) => matchRoute(route, request.nextUrl.pathname));
+
+  if (isSuperAdminRoute && userRoles[role] <= userRoles["superadmin"]) {
     return NextResponse.next();
   }
 
-  if (adminRoutes.includes(request.nextUrl.pathname) && userRoles[role] <= userRoles["admin"]) {
+  if (isAdminRoute && userRoles[role] <= userRoles["admin"]) {
     return NextResponse.next();
   }
 
-  if (userRoutes.includes(request.nextUrl.pathname) && userRoles[role] <= userRoles["user"]) {
+  if (isUserRoute && userRoles[role] <= userRoles["user"]) {
     return NextResponse.next();
   }
 
@@ -36,5 +53,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", `/blog/:path*`]
+  matcher: [
+    "/((?!_next|auth|sign-in|sign-up|api/auth).*)", // Exclude _next and auth routes
+  ]
 };

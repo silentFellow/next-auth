@@ -1,27 +1,30 @@
-import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
-import { Pool } from 'pg'
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from 'pg';
+import * as schema from "./schema";
 
-let isConnectted = false;
-const connectionString: string | undefined = process.env.DB_URL;
+const connectionString = process.env.DB_URL;
 
-if (connectionString === undefined) { throw new Error("DATABASE_URL is not set"); }
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not set");
+}
 
-const pool = new Pool({ connectionString: connectionString });
-let db: NodePgDatabase;
+const pool = new Pool({ connectionString });
+const db = drizzle(pool, { schema });
 
-const connectToDb = async (): Promise<NodePgDatabase> => {
-  if(!isConnectted) {
+let isConnected = false;
+
+const connectToDb = async () => {
+  if (!isConnected) {
     try {
-      db = drizzle(pool);
       await pool.connect();
-      isConnectted = true;
+      isConnected = true;
       console.log("Connected to database");
-    } catch(error: any) {
+    } catch (error: any) {
       console.error(`Error connecting to database: ${error.message}`);
     }
   }
 
-  return db
-}
+  return db;
+};
 
 export default connectToDb;
