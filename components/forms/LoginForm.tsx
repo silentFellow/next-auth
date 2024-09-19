@@ -28,7 +28,7 @@ const LoginForm = () => {
         password: value.password,
         redirect: false
       });
-      if(res?.ok) router.push("/create-blog");
+      if(res?.ok) router.push("/");
     } catch(error: any) {
       console.log(`Error: ${error.message}`)
     }

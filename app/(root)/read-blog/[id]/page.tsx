@@ -6,11 +6,12 @@ const Page = async ({ params }: { params: { id: string }}) => {
   if(!params.id) redirect("/");
 
   const blog = await fetchBlog(params.id);
-  if(blog.status !== 200) redirect("/");
+  console.log(blog)
+  if(blog.status !== 200 || !blog.data) redirect("/");
 
   return (
     <div>
-      <ReadOnly content={blog.data?.content} />
+      <ReadOnly content={blog.data[0]?.content} />
     </div>
   )
 }

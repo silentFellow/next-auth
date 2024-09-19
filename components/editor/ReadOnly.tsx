@@ -19,7 +19,7 @@ const ReadOnly = ({ content }: { content: string | undefined }) => {
   };
 
   return (
-    <div className="bg-blue-200 p-3 w-full">
+    <div className="p-3 w-full">
       <LexicalComposer initialConfig={editorConfig}>
         <RichTextPlugin
           contentEditable={<ContentEditable className='pointer-events-none' />}

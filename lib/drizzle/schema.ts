@@ -13,9 +13,9 @@ export const blogs = pgTable("blogs", {
   id: uuid("id").primaryKey().defaultRandom(),
   tags: uuid('tags').references(() => tags.id, { onDelete: 'cascade' }).array(),
   author: uuid("author").notNull().references(() => users.id, { onDelete: "cascade" }),
-  title: varchar('title', { length: 30 }).notNull(),
+  title: varchar('title', { length: 99 }).notNull(),
   content: text('content').notNull(),
-  thumbnail: text('thumbnail'),
+  thumbnail: text('thumbnail').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow()
 });
@@ -23,5 +23,5 @@ export const blogs = pgTable("blogs", {
 // tag section
 export const tags = pgTable('tags', {
   id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar('name', { length: 12 }).notNull().unique()
+  name: varchar('name', { length: 30 }).notNull().unique()
 });

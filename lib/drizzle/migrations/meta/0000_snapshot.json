@@ -1,5 +1,5 @@
 {
-  "id": "698ceec7-e76c-458e-8aab-1e4d32bb7701",
+  "id": "90be789d-7cfa-4ae2-90ed-22180ced50e5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -29,7 +29,7 @@
         },
         "title": {
           "name": "title",
-          "type": "varchar(30)",
+          "type": "varchar(99)",
           "primaryKey": false,
           "notNull": true
         },
@@ -43,7 +43,7 @@
           "name": "thumbnail",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "created_at": {
           "name": "created_at",
@@ -92,7 +92,7 @@
         },
         "name": {
           "name": "name",
-          "type": "varchar(12)",
+          "type": "varchar(30)",
           "primaryKey": false,
           "notNull": true
         }

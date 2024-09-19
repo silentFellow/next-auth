@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
-import { fetchAllTags } from "@/lib/actions/blog.actions";
+import { fetchAllTags } from "@/lib/actions/tag.actions";
 import BlogForm from "@/components/forms/BlogForm";
 import { EditorStateProvider } from "@/contexts/EditorContext";
 

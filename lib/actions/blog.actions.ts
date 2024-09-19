@@ -1,58 +1,25 @@
 'use server'
 
-import { eq, sql } from 'drizzle-orm'
+import { arrayOverlaps, eq, sql } from 'drizzle-orm'
 import { tags, blogs, users } from '@/lib/drizzle/schema'
 import connectToDb from '@/lib/drizzle'
+import { Blog } from '@/types'
+import { uploadFilesToS3 } from '../aws-fileupload'
 import { revalidatePath } from 'next/cache'
-import { ProcessedBlog } from '@/types'
-
-const fetchAllTags = async () => {
-  try {
-    const db = await connectToDb();
-    const allTags = await db.select().from(tags);
-    return allTags;
-  } catch(error: any) {
-    console.error(`Error fetching tag: ${error.message}`);
-  }
-}
-
-const fetchTag = async (name: string) => {
-  try {
-    const db = await connectToDb();
-    const tag = await db.select().from(tags).where(eq(tags.name, name)).limit(1);
-    if(!tag) throw new Error("Tag not found");
-    return tag;
-  } catch(error: any) {
-    console.error(`Error fetching tag: ${error.message}`);
-  }
-}
-
-const createTag = async (name: string, path: string) => {
-  try {
-    const db = await connectToDb();
-    const exists = await db.select().from(tags).where(eq(tags.name, name)).limit(1);
-
-    if(exists.length > 0) throw new Error("Tag already exists");
-    await db.insert(tags).values({ name });
-
-    revalidatePath(path);
-    return { message: "Tag created successfully", status: 200 }
-  } catch(error: any) {
-    console.error(`Error creating tag: ${error.message}`);
-  }
-}
 
 const createBlog = async (
   {
     author,
     title,
     tags,
-    content
+    content,
+    thumbnail
   } : {
     author: string;
     title: string;
     tags: string[];
     content: string;
+    thumbnail: string;
   },
 ) => {
   try {
@@ -61,7 +28,7 @@ const createBlog = async (
     const user = await db.select().from(users).where(eq(users.id, author)).limit(1)
     if(!user || user.length === 0) throw new Error("author not found");
 
-    await db.insert(blogs).values({ author, title, tags, content });
+    await db.insert(blogs).values({ author, title, tags, content, thumbnail });
 
     return { message: "Blog created successfully", status: 200 }
   } catch(error: any) {
@@ -82,16 +49,16 @@ const fetchBlogs = async () => {
       }
     })
     .from(blogs)
-    .leftJoin(users, eq(blogs.author, users.id))
+    .innerJoin(users, eq(blogs.author, users.id))
     .leftJoin(tags, sql`${blogs.tags} && ARRAY[${tags.id}]::uuid[]`);
 
     // Process the result to group tags for each blog
-    const processedBlogs = blogResult.reduce<Record<string, ProcessedBlog>>((acc, row) => {
+    const processedBlogs = blogResult.reduce<Record<string, Blog>>((acc, row) => {
       const blogId = row.blog.id;
       if (!acc[blogId]) {
         acc[blogId] = {
           ...row.blog,
-          author: row.author || null,
+          author: row.author,
           tags: [],
           createdAt: row.blog.createdAt.toISOString(),
           updatedAt: row.blog.updatedAt.toISOString()
@@ -126,24 +93,101 @@ const fetchBlog = async (id: string) => {
     .from(blogs)
     .where(eq(blogs.id, id))
     .limit(1)
-    .leftJoin(users, eq(blogs.author, users.id))
+    .innerJoin(users, eq(blogs.author, users.id))
     .leftJoin(tags, sql`${blogs.tags} && ARRAY[${tags.id}]::uuid[]`);
 
     // Process the result to group tags for each blog
-    if (blogResult.length === 0) {
-      return { message: "Blog not found", status: 404 };
+    const processedBlogs = blogResult.reduce<Record<string, Blog>>((acc, row) => {
+      const blogId = row.blog.id;
+      if (!acc[blogId]) {
+        acc[blogId] = {
+          ...row.blog,
+          author: row.author,
+          tags: [],
+          createdAt: row.blog.createdAt.toISOString(),
+          updatedAt: row.blog.updatedAt.toISOString()
+        };
+      }
+      if (row.tag) {
+        acc[blogId].tags.push(row.tag);
+      }
+      return acc;
+    }, {});
+
+    const result = Object.values(processedBlogs);
+
+    return { message: "Blogs fetched successfully", status: 200, data: result };
+  } catch(error: any) {
+    console.error(`Error fetching blogs: ${error.message}`);
+    return { message: "Error fetching blogs", status: 500 };
+  }
+}
+
+const uploadImage = async (imageForm: FormData): Promise<string> => {
+  try {
+    const image: File | null = imageForm.get("file") as File;
+    if(!image) throw new Error("No image found");
+    const res = await uploadFilesToS3(image);
+    return res
+  } catch(error: any) {
+    throw new Error(`Failed to upload image: ${error.message}`)
+  }
+}
+
+const deleteBlog = async (id: string, path: string) => {
+  try {
+    const db = await connectToDb();
+    const result = await db.delete(blogs).where(eq(blogs.id, id)).returning();
+
+    if (result.length === 0) {
+      throw new Error("Blog not found");
     }
 
-    const row = blogResult[0];
-    const processedBlog: ProcessedBlog = {
-      ...row.blog,
-      author: row.author || null,
-      tags: blogResult.map(r => r.tag).filter(tag => tag !== null),
-      createdAt: row.blog.createdAt.toISOString(),
-      updatedAt: row.blog.updatedAt.toISOString()
-    };
+    revalidatePath(path);
+    return { message: "Blog deleted successfully", status: 200 };
+  } catch (error: any) {
+    console.error(`Error deleting blog: ${error.message}`);
+    return { message: error.message, status: 404 };
+  }
+}
 
-    return { message: "Blogs fetched successfully", status: 200, data: processedBlog };
+const fetchBlogsOnTags = async (id: string) => {
+  try {
+    const db = await connectToDb();
+    const blogResult = await db.select({
+      blog: blogs,
+      tag: tags,
+      author: {
+        id: users.id,
+        username: users.username
+      }
+    })
+    .from(blogs)
+    .where(arrayOverlaps(blogs.tags, [id]))
+    .innerJoin(users, eq(blogs.author, users.id))
+    .leftJoin(tags, sql`${blogs.tags} && ARRAY[${tags.id}]::uuid[]`);
+
+    // Process the result to group tags for each blog
+    const processedBlogs = blogResult.reduce<Record<string, Blog>>((acc, row) => {
+      const blogId = row.blog.id;
+      if (!acc[blogId]) {
+        acc[blogId] = {
+          ...row.blog,
+          author: row.author,
+          tags: [],
+          createdAt: row.blog.createdAt.toISOString(),
+          updatedAt: row.blog.updatedAt.toISOString()
+        };
+      }
+      if (row.tag) {
+        acc[blogId].tags.push(row.tag);
+      }
+      return acc;
+    }, {});
+
+    const result = Object.values(processedBlogs);
+
+    return { message: "Blogs fetched successfully", status: 200, data: result };
   } catch(error: any) {
     console.error(`Error fetching blogs: ${error.message}`);
     return { message: "Error fetching blogs", status: 500 };
@@ -151,10 +195,10 @@ const fetchBlog = async (id: string) => {
 }
 
 export {
-  fetchTag,
-  fetchAllTags,
-  createTag,
   createBlog,
   fetchBlogs,
-  fetchBlog
+  fetchBlog,
+  fetchBlogsOnTags,
+  deleteBlog,
+  uploadImage
 }

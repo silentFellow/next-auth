@@ -3,7 +3,7 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 
 import { config } from 'dotenv';
-config({ path: '../../.env' })
+config({ path: '../../.env.local' })
 
 const val: string | undefined = process.env.DB_URL;
 if(val === undefined) throw new Error("DB_URL environment variable is not set");

@@ -30,8 +30,8 @@
 }
 
 .editor-scroller {
-  min-height: calc(100vh - 90px);
-  max-height: calc(100vh - 90px);
+  min-height: 100vh; 
+  max-height: 100vh;
   border: 0;
   display: flex;
   position: relative;
