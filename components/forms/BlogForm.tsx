@@ -18,6 +18,7 @@ import { createTag } from '@/lib/actions/tag.actions';
 import { useEditorState } from '@/contexts/EditorContext';
 import Image from 'next/image';
 import { isBase64Image } from '@/lib/utils';
+import { IoMdAdd } from "react-icons/io";
 
 interface Props {
   user: {
@@ -42,6 +43,7 @@ interface Props {
 const BlogForm = ({ user, tags, edit, editData }: Props) => {
   const [phase, setPhase] = useState<"metadata" | "content">("metadata");
   const [files, setFiles] = useState<File[]>([]);
+  const [tagSearch, setTagSearch] = useState<string>("")
 
   const { editorState } = useEditorState();
   const pathname = usePathname();
@@ -189,13 +191,13 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
                 className="w-[80%] flex-col"
                 onSubmit={blogForm.handleSubmit(blogSubmit)}
               >
-                <div className="w-full p-4 rounded-md flex gap-3 bg-[#f5f5f5] shadow-xl">
+                <div className="w-full p-4 rounded-md flex flex-col md:flex-row gap-3 bg-[#f5f5f5] shadow-xl">
                   <FormField
                     control={blogForm.control}
                     name="thumbnail"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col items-center gap-4 w-[40%] rounded-md">
-                        <FormLabel className="relative full" htmlFor='imageUpload'>
+                      <FormItem className="flex flex-col items-center gap-4 w-full md:w-[40%] rounded-md">
+                        <FormLabel className="relative w-full h-96 md:h-full" htmlFor='imageUpload'>
                           {field.value ? (
                             <Image
                               src={field.value}
@@ -257,76 +259,122 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
                           <FormLabel className="text-[16px] leading-[140%] font-bold">Tags</FormLabel>
 
                           <FormControl>
+                            <div className="flex gap-5">
                             <DropdownMenu>
-                              <DropdownMenuTrigger asChild className='bg-white'>
+                              <DropdownMenuTrigger asChild className='bg-white w-[70%] rounded-md'>
                                 <Button variant="outline">Select Tags</Button>
                               </DropdownMenuTrigger>
 
-                              <DropdownMenuContent className="w-56">
-
-                              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                                <DialogTrigger asChild>
-                                  <Button variant="outline" className='w-full'>Create Tag</Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-[425px]">
-                                  <DialogHeader>
-                                    <DialogTitle>Create Tag</DialogTitle>
-                                  </DialogHeader>
-
-                                  <Form {...tagForm}>
-                                    <form
-                                      onSubmit={(e) => {
-                                        e.preventDefault();
-                                        tagForm.handleSubmit(tagSubmit)(e);
-                                        e.stopPropagation();
-                                      }}
-                                      className="flex flex-col justify-start gap-6 full"
-                                    >
-                                      <FormField
-                                        control={tagForm.control}
-                                        name="name"
-                                        render={({ field }) => (
-                                          <FormItem className="flex flex-col w-full">
-                                            <FormLabel className="text-[16px] leading-[140%] font-[600px] text-light-2">Tag Name</FormLabel>
-                                            <FormControl>
-                                              <Input
-                                                type="text"
-                                                placeholder="Enter tag name..."
-                                                className="border border-[rgb(33,33,33)] no-focus"
-                                                {...field}
-                                              />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-
-                                      <DialogFooter>
-                                        <Button type="submit">Create</Button>
-                                      </DialogFooter>
-                                    </form>
-                                  </Form>
-
-                                </DialogContent>
-                              </Dialog>
+                              <DropdownMenuContent className="w-64 flex flex-col px-3">
 
                               <DropdownMenuSeparator />
-                              {tags.map((tag: {name: string, id: string}) => (
-                                <DropdownMenuCheckboxItem
-                                  key={tag.id}
-                                  checked={(field.value as string[]).includes(tag.id)}
-                                  onCheckedChange={(checked) => {
-                                    const newValue = checked
-                                      ? [...(field.value as string[]), tag.id]
-                                      : (field.value as string[]).filter((value: string) => value !== tag.id);
-                                    field.onChange(newValue);
-                                  }}
-                                >
-                                  {tag.name}
-                                </DropdownMenuCheckboxItem>
-                              ))}
+
+                              {/* search */}
+                              <Input
+                                type="text"
+                                placeholder="Search..."
+                                className="border border-[rgb(33,33,33)] no-focus"
+                                onChange={(e) => setTagSearch(e.target.value)}
+                              />
+
+                              <DropdownMenuSeparator />
+
+                              {/* tags */}
+                              {tagSearch === "" ? (
+                                tags.map((tag: {name: string, id: string}) => (
+                                  <DropdownMenuCheckboxItem
+                                    key={tag.id}
+                                    checked={(field.value as string[]).includes(tag.id)}
+                                    onCheckedChange={(checked) => {
+                                      const newValue = checked
+                                        ? [...(field.value as string[]), tag.id]
+                                        : (field.value as string[]).filter((value: string) => value !== tag.id);
+                                      field.onChange(newValue);
+                                    }}
+                                  >
+                                    {tag.name}
+                                  </DropdownMenuCheckboxItem>
+                                ))
+                              ) : (
+                                (() => {
+                                  const filteredTags = tags.filter((tag) => tag.name.includes(tagSearch));
+                                  return filteredTags.length === 0 ? (
+                                    <p className='text-center p-3'>No match</p>
+                                  ) : (
+                                    filteredTags.map((tag: {name: string, id: string}) => (
+                                      <DropdownMenuCheckboxItem
+                                        key={tag.id}
+                                        checked={(field.value as string[]).includes(tag.id)}
+                                        onCheckedChange={(checked) => {
+                                          const newValue = checked
+                                            ? [...(field.value as string[]), tag.id]
+                                            : (field.value as string[]).filter((value: string) => value !== tag.id);
+                                          field.onChange(newValue);
+                                        }}
+                                      >
+                                        {tag.name}
+                                      </DropdownMenuCheckboxItem>
+                                    ))
+                                  );
+                                })()
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
+
+                          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+
+                            <DialogTrigger asChild className='hidden sm:flex'>
+                              <Button variant="outline" className='w-[30%]'>Create Tag</Button>
+                            </DialogTrigger>
+                            <DialogTrigger asChild className='flex sm:hidden'>
+                              <Button variant="outline" className='rounded-md'>
+                                <IoMdAdd />
+                              </Button>
+                            </DialogTrigger>
+
+                            <DialogContent className="sm:max-w-[425px]">
+                              <DialogHeader>
+                                <DialogTitle>Create Tag</DialogTitle>
+                              </DialogHeader>
+
+                              <Form {...tagForm}>
+                                <form
+                                  onSubmit={(e) => {
+                                    e.preventDefault();
+                                    tagForm.handleSubmit(tagSubmit)(e);
+                                    e.stopPropagation();
+                                  }}
+                                  className="flex flex-col justify-start gap-6 full"
+                                >
+                                  <FormField
+                                    control={tagForm.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                      <FormItem className="flex flex-col w-full">
+                                        <FormLabel className="text-[16px] leading-[140%] font-[600px] text-light-2">Tag Name</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="text"
+                                            placeholder="Enter tag name..."
+                                            className="border border-[rgb(33,33,33)] no-focus"
+                                            {...field}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+
+                                  <DialogFooter>
+                                    <Button type="submit">Create</Button>
+                                  </DialogFooter>
+                                </form>
+                              </Form>
+
+                            </DialogContent>
+                          </Dialog>
+
+                        </div>
                         </FormControl>
                         <FormMessage />
 
