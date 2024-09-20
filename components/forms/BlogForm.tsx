@@ -280,28 +280,13 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
                               <DropdownMenuSeparator />
 
                               {/* tags */}
-                              {tagSearch === "" ? (
-                                tags.map((tag: {name: string, id: string}) => (
-                                  <DropdownMenuCheckboxItem
-                                    key={tag.id}
-                                    checked={(field.value as string[]).includes(tag.id)}
-                                    onCheckedChange={(checked) => {
-                                      const newValue = checked
-                                        ? [...(field.value as string[]), tag.id]
-                                        : (field.value as string[]).filter((value: string) => value !== tag.id);
-                                      field.onChange(newValue);
-                                    }}
-                                  >
-                                    {tag.name}
-                                  </DropdownMenuCheckboxItem>
-                                ))
-                              ) : (
+                              {
                                 (() => {
                                   const filteredTags = tags.filter((tag) => tag.name.includes(tagSearch));
                                   return filteredTags.length === 0 ? (
                                     <p className='text-center p-3'>No match</p>
                                   ) : (
-                                    filteredTags.map((tag: {name: string, id: string}) => (
+                                    filteredTags.map((tag: { name: string, id: string }) => (
                                       <DropdownMenuCheckboxItem
                                         key={tag.id}
                                         checked={(field.value as string[]).includes(tag.id)}
@@ -317,7 +302,7 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
                                     ))
                                   );
                                 })()
-                              )}
+                              }
                             </DropdownMenuContent>
                           </DropdownMenu>
 
