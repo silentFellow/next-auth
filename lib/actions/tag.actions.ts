@@ -15,14 +15,15 @@ export const fetchAllTags = async () => {
   }
 }
 
-export const fetchTag = async (name: string) => {
+export const fetchTag = async (id: string) => {
   try {
     const db = await connectToDb();
-    const tag = await db.select().from(tags).where(eq(tags.name, name)).limit(1);
-    if(!tag) throw new Error("Tag not found");
-    return tag;
+    const tag = await db.select().from(tags).where(eq(tags.id, id)).limit(1);
+    if(!tag || tag.length === 0) throw new Error("Tag not found");
+    return { message: "Tag fetched successfully", status: 200, data: tag[0] }
   } catch(error: any) {
     console.error(`Error fetching tag: ${error.message}`);
+    return { message: "Tag not found", status: 404 }
   }
 }
 

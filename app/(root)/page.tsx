@@ -14,8 +14,8 @@ interface Blogs {
 
 const Home = async () => {
   const [session, blogs] = await Promise.all([
-    await getServerSession(authOptions),
-    await fetchBlogs()
+    getServerSession(authOptions),
+    fetchBlogs()
   ]) as [Session | null, Blogs];
 
   if(blogs.status !== 200 || !blogs.data) return null;

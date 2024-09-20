@@ -15,6 +15,11 @@ export interface Blog {
   }[];
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+}
+
 export interface Session {
   user: {
     name?: string;

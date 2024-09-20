@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import Editor from '@/components/editor/Editor';
-import { createBlog, uploadImage } from '@/lib/actions/blog.actions';
+import { createBlog, updateBlog, uploadImage } from '@/lib/actions/blog.actions';
 import { createTag } from '@/lib/actions/tag.actions';
 
 import { useEditorState } from '@/contexts/EditorContext';
@@ -123,31 +123,43 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
     value.content = JSON.parse(editorState);
 
     // uploading image
-    try {
-      const blob = value.thumbnail;
-      const hasChanged = isBase64Image(blob);
+    if(!edit || (edit && files.length > 0)) { // Only upload image if it has changed
+      try {
+        const blob = value.thumbnail;
+        const hasChanged = isBase64Image(blob);
 
-      if(hasChanged) {
-        const formData = new FormData();
-        formData.append('file', files[0]);
+        if(hasChanged) {
+          const formData = new FormData();
+          formData.append('file', files[0]);
 
-        const imageRes = await uploadImage(formData);
-        if(imageRes) value.thumbnail = imageRes;
+          const imageRes = await uploadImage(formData);
+          if(imageRes) value.thumbnail = imageRes;
+        }
+      } catch(error: any) {
+        console.log(`Failed to upload image: ${error.message}`)
+        return;
       }
-    } catch(error: any) {
-      console.log(`Failed to upload image: ${error.message}`)
-      return;
     }
 
     // posting blog
     try {
-      const res = await createBlog({
-        title: value.title,
-        author: value.author,
-        tags: value.tags,
-        content: value.content,
-        thumbnail: value.thumbnail
-      })
+      let res;
+      if(edit) {
+        res = await updateBlog(editData?.id as string, {
+          title: value.title,
+          tags: value.tags,
+          content: value.content,
+          thumbnail: value.thumbnail
+        })
+      } else {
+        res = await createBlog({
+          title: value.title,
+          author: value.author,
+          tags: value.tags,
+          content: value.content,
+          thumbnail: value.thumbnail
+        })
+      }
       if(res && res.status === 200) router.push("/")
     } catch(error: any) {
       console.log(`Failed to post blog: ${error.message}`)

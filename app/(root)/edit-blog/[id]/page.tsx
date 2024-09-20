@@ -16,20 +16,20 @@ interface session {
 
 const EditBlog = async ({ params }: { params: { id: string } }) => {
   const [session, tags, blog] = await Promise.all([
-    await getServerSession(authOptions) as session | null,
-    await fetchAllTags(),
-    await fetchBlog(params.id)
+    getServerSession(authOptions) as Promise<session | null>,
+    fetchAllTags(),
+    fetchBlog(params.id)
   ])
 
   if(!session) redirect("/sign-in");
   if(!blog.data || blog.status !== 200) redirect("/blogs");
 
   const editData = {
-    id: blog.data?.id,
-    title: blog.data?.title,
-    tags: blog.data?.tags.map((tag) => tag.id),
-    content: blog.data?.content,
-    thumbnail: blog.data?.thumbnail,
+    id: blog.data[0]?.id,
+    title: blog.data[0]?.title,
+    tags: blog.data[0]?.tags.map((tag) => tag.id),
+    content: blog.data[0]?.content,
+    thumbnail: blog.data[0]?.thumbnail,
   }
 
   return (

@@ -6,7 +6,6 @@ const Page = async ({ params }: { params: { id: string }}) => {
   if(!params.id) redirect("/");
 
   const blog = await fetchBlog(params.id);
-  console.log(blog)
   if(blog.status !== 200 || !blog.data) redirect("/");
 
   return (

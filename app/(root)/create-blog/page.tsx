@@ -15,22 +15,22 @@ interface session {
 
 const CreateBlog = async () => {
   const [session, tags] = await Promise.all([
-    await getServerSession(authOptions) as session | null,
-    await fetchAllTags()
+    getServerSession(authOptions) as Promise<session | null>,
+    fetchAllTags()
   ])
 
   if(!session) redirect("/sign-in");
 
   return (
-  <section className="full">
-    <h1 className="font-bold text-xl">Create Your Blogs: </h1>
+    <section className="full">
+      <h1 className="font-bold text-xl">Create Your Blogs: </h1>
 
-    <div className="full mt-6">
-      <EditorStateProvider>
-        <BlogForm user={session.user} tags={tags || []} />
-      </EditorStateProvider>
-    </div>
-  </section>
+      <div className="full mt-6">
+        <EditorStateProvider>
+          <BlogForm user={session.user} tags={tags || []} />
+        </EditorStateProvider>
+      </div>
+    </section>
   )
 }
 

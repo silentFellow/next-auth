@@ -151,6 +151,41 @@ const deleteBlog = async (id: string, path: string) => {
   }
 }
 
+const updateBlog = async (
+  id: string,
+  {
+    title,
+    tags,
+    content,
+    thumbnail
+  } : {
+    title: string;
+    tags: string[];
+    content: string;
+    thumbnail: string;
+  }
+) => {
+  try {
+    const db = await connectToDb();
+
+    const exists = await db.select().from(blogs).where(eq(blogs.id, id))
+    if (!exists || exists.length === 0) throw new Error("Blog not found");
+
+    await db.update(blogs)
+        .set({ 
+            title, 
+            tags, 
+            content, 
+            thumbnail, 
+            updatedAt: new Date() 
+        })
+    .where(eq(blogs.id, id));
+    return { message: "Blog updated successfully", status: 200 };
+  } catch(error: any) {
+    console.error(`Error updating blogs: ${error.message}`);
+  }
+}
+
 const fetchBlogsOnTags = async (id: string) => {
   try {
     const db = await connectToDb();
@@ -196,6 +231,7 @@ const fetchBlogsOnTags = async (id: string) => {
 
 export {
   createBlog,
+  updateBlog,
   fetchBlogs,
   fetchBlog,
   fetchBlogsOnTags,

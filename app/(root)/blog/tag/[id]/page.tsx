@@ -1,10 +1,12 @@
+import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { fetchBlogsOnTags } from "@/lib/actions/blog.actions";
-import { Blog, Session } from "@/types";
+import { Blog, Session, Tag } from "@/types";
 import Link from "next/link";
 import BlogCards from "@/components/cards/BlogCards";
+import { fetchTag } from "@/lib/actions/tag.actions";
 
 interface Blogs {
   message: string;
@@ -12,20 +14,28 @@ interface Blogs {
   data?: Blog[];
 }
 
+interface TagRes {
+  message: string;
+  status: number;
+  data?: Tag;
+}
+
 const BlogsOnTags = async ({ params }: { params: { id: string } }) => {
   if(!params.id) return null;
 
-  const [session, blogs] = await Promise.all([
-    await getServerSession(authOptions),
-    await fetchBlogsOnTags(params.id)
-  ]) as [Session | null, Blogs];
+  const [session, blogs, tag] = await Promise.all([
+    getServerSession(authOptions),
+    fetchBlogsOnTags(params.id),
+    fetchTag(params.id)
+  ]) as [Session | null, Blogs, TagRes];
 
-  if(blogs.status !== 200 || !blogs.data) return null;
+  if(blogs.status !== 200 || !blogs.data) redirect("/");
+  if(tag.status !== 200 || !tag.data) redirect("/");
 
   return (
     <>
       <div className="w-full flex justify-between">
-        <h1 className="font-bold text-xl">Welcome to the Blog</h1>
+        <h1 className="font-bold text-xl">{tag.data.name} Blog</h1>
 
         <Link href="/create-blog">
           <Button className="uppercase">Create</Button>
