@@ -36,4 +36,4 @@ yarn-error.log*
 next-env.d.ts
 
 # db
-./lib/drizzle/migrations
+./lib/drizzle/migrations/
