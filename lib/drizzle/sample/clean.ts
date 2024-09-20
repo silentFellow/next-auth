@@ -21,29 +21,19 @@ const main = async () => {
     console.log("Cleanup of db started...");
     await pool.connect();
 
-    await Promise.all([
-      db.execute(sql`DROP TABLE blogs`),
-      db.execute(sql`DROP TABLE tags`),
-      db.execute(sql`DROP TABLE users`)
-    ])
+    // Execute DELETE operations sequentially
+    await db.execute(sql`DELETE FROM blogs`);
+    await db.execute(sql`DELETE FROM tags`);
+    await db.execute(sql`DELETE FROM users`);
 
-    await Promise.all([
-      db.insert(users).values({
-        username: "silentFellow",
-        password: "silentFellow",
-        role: "admin"
-      }),
-
-      db.insert(users).values({
-        username: "gca_admin",
-        password: "pwd",
-        role: "admin"
-      })
-    ])
+    // Execute DROP TABLE operations sequentially
+    await db.execute(sql`DROP TABLE blogs`);
+    await db.execute(sql`DROP TABLE tags`);
+    await db.execute(sql`DROP TABLE users`);
 
     console.log("Successfully cleaned up");
   } catch(error: any) {
-    console.log(`Error seeding data: ${error.message}`)
+    console.log(`Error cleaning data: ${error.message}`)
   } finally {
     process.exit(0);
   }
