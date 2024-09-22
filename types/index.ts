@@ -1,3 +1,9 @@
+export interface Response<T = undefined> {
+  message: string;
+  status: number;
+  data?: T;
+}
+
 export interface Blog {
   id: string;
   title: string;
@@ -15,9 +21,17 @@ export interface Blog {
   }[];
 }
 
+
 export interface Tag {
   id: string;
   name: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  password: string | null;
+  role: string;
 }
 
 export interface Session {

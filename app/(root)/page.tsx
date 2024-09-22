@@ -2,28 +2,22 @@ import { Button } from "@/components/ui/button";
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { fetchBlogs } from "@/lib/actions/blog.actions";
-import { Blog, Session } from "@/types";
+import { Response, Blog, Session } from "@/types";
 import Link from "next/link";
 import BlogCards from "@/components/cards/BlogCards";
-
-interface Blogs {
-  message: string;
-  status: number;
-  data?: Blog[];
-}
 
 const Home = async () => {
   const [session, blogs] = await Promise.all([
     getServerSession(authOptions),
     fetchBlogs()
-  ]) as [Session | null, Blogs];
+  ]) as [Session | null, Response<Blog[]>];
 
   if(blogs.status !== 200 || !blogs.data) return null;
 
   return (
     <>
       <div className="w-full flex justify-between">
-        <h1 className="font-bold text-xl">Welcome to the Blog</h1>
+        <h1 className="head">Welcome to the Blog</h1>
 
         <Link href="/create-blog">
           <Button className="uppercase">Create</Button>

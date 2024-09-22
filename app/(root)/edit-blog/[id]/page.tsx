@@ -5,42 +5,35 @@ import { fetchAllTags } from "@/lib/actions/tag.actions";
 import BlogForm from "@/components/forms/BlogForm";
 import { EditorStateProvider } from "@/contexts/EditorContext";
 import { fetchBlog } from "@/lib/actions/blog.actions";
-
-interface session {
-  user: {
-    id: string;
-    role: "user" | "admin" | "super-admin";
-    username: string
-  }
-}
+import { Response, Blog, Tag, Session } from "@/types";
 
 const EditBlog = async ({ params }: { params: { id: string } }) => {
   const [session, tags, blog] = await Promise.all([
-    getServerSession(authOptions) as Promise<session | null>,
+    getServerSession(authOptions),
     fetchAllTags(),
     fetchBlog(params.id)
-  ])
+  ]) as [Session | null, Response<Tag[]>, Response<Blog>]
 
-  if(!session) redirect("/sign-in");
+  if(!session || !session.user) redirect("/sign-in");
   if(!blog.data || blog.status !== 200) redirect("/blogs");
 
   const editData = {
-    id: blog.data[0]?.id,
-    title: blog.data[0]?.title,
-    tags: blog.data[0]?.tags.map((tag) => tag.id),
-    content: blog.data[0]?.content,
-    thumbnail: blog.data[0]?.thumbnail,
+    id: blog.data?.id,
+    title: blog.data?.title,
+    tags: blog.data?.tags.map((tag) => tag.id),
+    content: blog.data?.content,
+    thumbnail: blog.data?.thumbnail,
   }
 
   return (
   <section className="full">
-    <h1 className="font-bold text-xl">Edit Your Blogs: </h1>
+    <h1 className="head">Edit Your Blogs: </h1>
 
     <div className="full mt-6">
       <EditorStateProvider>
         <BlogForm
           user={session.user}
-          tags={tags || []}
+          tags={tags.data || []}
           edit
           editData={editData}
         />

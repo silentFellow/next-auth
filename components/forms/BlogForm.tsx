@@ -23,7 +23,7 @@ import { IoMdAdd } from "react-icons/io";
 interface Props {
   user: {
     id: string;
-    role: "user" | "admin" | "super-admin";
+    role: "user" | "admin" | "superadmin";
     username: string
   },
   tags: {
@@ -135,7 +135,7 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
           formData.append('file', files[0]);
 
           const imageRes = await uploadImage(formData);
-          if(imageRes) value.thumbnail = imageRes;
+          if(imageRes.status === 200 && imageRes.data) value.thumbnail = imageRes.data;
         }
       } catch(error: any) {
         console.log(`Failed to upload image: ${error.message}`)
@@ -147,14 +147,14 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
     try {
       let res;
       if(edit) {
-        res = await updateBlog(editData?.id as string, {
+        res = await updateBlog(editData?.id as string, pathname, {
           title: value.title,
           tags: value.tags,
           content: value.content,
           thumbnail: value.thumbnail
         })
       } else {
-        res = await createBlog({
+        res = await createBlog(pathname, {
           title: value.title,
           author: value.author,
           tags: value.tags,
@@ -415,11 +415,7 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
                     <FormItem className="flex flex-col w-full">
                       <FormLabel className="text-[16px] leading-[140%] font-[600px] text-light-2">Content</FormLabel>
                       <FormControl>
-                        {edit ? (
-                          <Editor edit editorState={field.value} />
-                        ) : (
-                          <Editor />
-                        )}
+                        <Editor editorState={field.value} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

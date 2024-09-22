@@ -71,7 +71,7 @@ const skipCollaborationInit = window.parent != null && window.parent.frames.righ
 
 export default function Editor(): JSX.Element {
   const [editor] = useLexicalComposerContext();
-  const { setEditorState } = useEditorState();
+  const { editorState, setEditorState } = useEditorState();
 
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {

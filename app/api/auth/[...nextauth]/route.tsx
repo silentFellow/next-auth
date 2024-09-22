@@ -19,17 +19,20 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if(!credentials || !credentials.username || !credentials.password) throw new Error("No credentials provided");
         try {
-          const user = await fetchUser(credentials.username)
-          if(user && user.length === 0) throw new Error("No user found");
-
-          if(user && user.length > 0) {
-            if(user[0].password === null) throw new Error("Wrong authentication method");
-            if(user[0].password !== credentials.password) throw new Error("Password does not match");
-            return user[0];
+          const userResponse = await fetchUser(credentials.username);
+          if (!userResponse || !userResponse.data) {
+            throw new Error("No user found");
           }
 
-          return null;
-        } catch(error: any) {
+          const user = userResponse.data;
+          if (user.password === null) {
+            throw new Error("Wrong authentication method");
+          }
+          if (user.password !== credentials.password) {
+            throw new Error("Password does not match");
+          }
+          return user;
+        } catch (error: any) {
           console.log(`[auth] ${error.message}`);
           return null;
         }

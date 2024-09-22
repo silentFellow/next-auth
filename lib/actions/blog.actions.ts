@@ -6,8 +6,10 @@ import connectToDb from '@/lib/drizzle'
 import { Blog } from '@/types'
 import { uploadFilesToS3 } from '../aws-fileupload'
 import { revalidatePath } from 'next/cache'
+import { Response } from '@/types'
 
 const createBlog = async (
+  path: string,
   {
     author,
     title,
@@ -21,7 +23,7 @@ const createBlog = async (
     content: string;
     thumbnail: string;
   },
-) => {
+): Promise<Response> => {
   try {
     const db = await connectToDb();
 
@@ -30,14 +32,16 @@ const createBlog = async (
 
     await db.insert(blogs).values({ author, title, tags, content, thumbnail });
 
+    revalidatePath(path);
     return { message: "Blog created successfully", status: 200 }
   } catch(error: any) {
     console.error(`Error creating blogs: ${error.message}`);
+    return { message: "Failed to create Blog", status: 500 };
   }
 }
 
 // fetch blogs
-const fetchBlogs = async () => {
+const fetchBlogs = async (): Promise<Response<Blog[]>> => {
   try {
     const db = await connectToDb();
     const blogResult = await db.select({
@@ -67,6 +71,7 @@ const fetchBlogs = async () => {
       if (row.tag) {
         acc[blogId].tags.push(row.tag);
       }
+
       return acc;
     }, {});
 
@@ -79,7 +84,7 @@ const fetchBlogs = async () => {
   }
 }
 
-const fetchBlog = async (id: string) => {
+const fetchBlog = async (id: string): Promise<Response<Blog>> => {
   try {
     const db = await connectToDb();
     const blogResult = await db.select({
@@ -116,25 +121,27 @@ const fetchBlog = async (id: string) => {
 
     const result = Object.values(processedBlogs);
 
-    return { message: "Blogs fetched successfully", status: 200, data: result };
+    return { message: "Blogs fetched successfully", status: 200, data: result[0] };
   } catch(error: any) {
     console.error(`Error fetching blogs: ${error.message}`);
     return { message: "Error fetching blogs", status: 500 };
   }
 }
 
-const uploadImage = async (imageForm: FormData): Promise<string> => {
+const uploadImage = async (imageForm: FormData): Promise<Response<string>> => {
   try {
     const image: File | null = imageForm.get("file") as File;
     if(!image) throw new Error("No image found");
     const res = await uploadFilesToS3(image);
-    return res
+
+    return { message: "image uploaded successfully", data: res, status: 200 }
   } catch(error: any) {
-    throw new Error(`Failed to upload image: ${error.message}`)
+    console.log(`Failed to upload image: ${error.message}`)
+    return { message: "image uploaded successfully", status: 500 }
   }
 }
 
-const deleteBlog = async (id: string, path: string) => {
+const deleteBlog = async (id: string, path: string): Promise<Response> => {
   try {
     const db = await connectToDb();
     const result = await db.delete(blogs).where(eq(blogs.id, id)).returning();
@@ -147,12 +154,13 @@ const deleteBlog = async (id: string, path: string) => {
     return { message: "Blog deleted successfully", status: 200 };
   } catch (error: any) {
     console.error(`Error deleting blog: ${error.message}`);
-    return { message: error.message, status: 404 };
+    return { message: error.message, status: 500 };
   }
 }
 
 const updateBlog = async (
   id: string,
+  path: string,
   {
     title,
     tags,
@@ -164,7 +172,7 @@ const updateBlog = async (
     content: string;
     thumbnail: string;
   }
-) => {
+): Promise<Response> => {
   try {
     const db = await connectToDb();
 
@@ -172,21 +180,24 @@ const updateBlog = async (
     if (!exists || exists.length === 0) throw new Error("Blog not found");
 
     await db.update(blogs)
-        .set({ 
-            title, 
-            tags, 
-            content, 
-            thumbnail, 
-            updatedAt: new Date() 
+        .set({
+            title,
+            tags,
+            content,
+            thumbnail,
+            updatedAt: new Date()
         })
     .where(eq(blogs.id, id));
+
+    revalidatePath(path);
     return { message: "Blog updated successfully", status: 200 };
   } catch(error: any) {
     console.error(`Error updating blogs: ${error.message}`);
+    return { message: "Failed to update blog", status: 500 };
   }
 }
 
-const fetchBlogsOnTags = async (id: string) => {
+const fetchBlogsOnTags = async (id: string): Promise<Response<Blog[]>> => {
   try {
     const db = await connectToDb();
     const blogResult = await db.select({

@@ -3,22 +3,10 @@ import { Button } from "@/components/ui/button";
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { fetchBlogsOnTags } from "@/lib/actions/blog.actions";
-import { Blog, Session, Tag } from "@/types";
+import { Blog, Session, Tag, Response } from "@/types";
 import Link from "next/link";
 import BlogCards from "@/components/cards/BlogCards";
 import { fetchTag } from "@/lib/actions/tag.actions";
-
-interface Blogs {
-  message: string;
-  status: number;
-  data?: Blog[];
-}
-
-interface TagRes {
-  message: string;
-  status: number;
-  data?: Tag;
-}
 
 const BlogsOnTags = async ({ params }: { params: { id: string } }) => {
   if(!params.id) return null;
@@ -27,7 +15,7 @@ const BlogsOnTags = async ({ params }: { params: { id: string } }) => {
     getServerSession(authOptions),
     fetchBlogsOnTags(params.id),
     fetchTag(params.id)
-  ]) as [Session | null, Blogs, TagRes];
+  ]) as [Session | null, Response<Blog[]>, Response<Tag>];
 
   if(blogs.status !== 200 || !blogs.data) redirect("/");
   if(tag.status !== 200 || !tag.data) redirect("/");
@@ -35,7 +23,7 @@ const BlogsOnTags = async ({ params }: { params: { id: string } }) => {
   return (
     <>
       <div className="w-full flex justify-between">
-        <h1 className="font-bold text-xl">{tag.data.name} Blog</h1>
+        <h1 className="head">{tag.data.name} Blog</h1>
 
         <Link href="/create-blog">
           <Button className="uppercase">Create</Button>

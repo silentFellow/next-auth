@@ -100,13 +100,13 @@ function $prepopulatedRichText() {
   }
 }
 
-function App({ edit, editorState }: { edit?: boolean, editorState?: string }): JSX.Element {
+function App({ editorState }: { editorState: string }): JSX.Element {
   const {
     settings: {isCollab, emptyEditor, measureTypingPerf},
   } = useSettings();
 
   const initialConfig = {
-    editorState: edit ? (JSON.parse(editorState as string) || null) : (isCollab
+    editorState: (editorState !== "" ? JSON.parse(editorState as string) : null) || (isCollab
       ? null
       : emptyEditor
       ? undefined
@@ -136,15 +136,11 @@ function App({ edit, editorState }: { edit?: boolean, editorState?: string }): J
   );
 }
 
-export default function PlaygroundApp({ edit, editorState }: { edit?: boolean, editorState?: string }): JSX.Element {
+export default function PlaygroundApp({ editorState }: { editorState: string }): JSX.Element {
   return (
     <SettingsContext>
       <FlashMessageContext>
-        {edit ? (
-          <App edit editorState={editorState} />
-        ) : (
-          <App />
-        )}
+        <App editorState={editorState} />
       </FlashMessageContext>
     </SettingsContext>
   );

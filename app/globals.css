@@ -23,3 +23,7 @@
 .center {
   @apply flex justify-center items-center;
 }
+
+.head {
+  @apply font-extrabold leading-[140%] text-xl text-[rgb(33,33,33)];
+}

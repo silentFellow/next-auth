@@ -4,30 +4,23 @@ import { redirect } from "next/navigation";
 import { fetchAllTags } from "@/lib/actions/tag.actions";
 import BlogForm from "@/components/forms/BlogForm";
 import { EditorStateProvider } from "@/contexts/EditorContext";
-
-interface session {
-  user: {
-    id: string;
-    role: "user" | "admin" | "super-admin";
-    username: string
-  }
-}
+import { Response, Session, Tag } from "@/types";
 
 const CreateBlog = async () => {
   const [session, tags] = await Promise.all([
-    getServerSession(authOptions) as Promise<session | null>,
+    getServerSession(authOptions),
     fetchAllTags()
-  ])
+  ]) as [Session | null, Response<Tag[]>]
 
   if(!session) redirect("/sign-in");
 
   return (
     <section className="full">
-      <h1 className="font-bold text-xl">Create Your Blogs: </h1>
+      <h1 className="head">Create Your Blogs: </h1>
 
       <div className="full mt-6">
         <EditorStateProvider>
-          <BlogForm user={session.user} tags={tags || []} />
+          <BlogForm user={session.user} tags={tags.data || []} />
         </EditorStateProvider>
       </div>
     </section>
