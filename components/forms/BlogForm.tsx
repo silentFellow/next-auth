@@ -476,8 +476,8 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
                   Prev
                 </Button>
 
-                <Button type="submit" disabled={blogForm.formState.isSubmitting} className="bg-black">
-                  {blogForm.formState.isSubmitting ? "Posting Blog..." : "Post Blog"}
+                <Button type="submit" disabled={isSubmitting.blog} className="bg-black">
+                  {isSubmitting.blog ? "Posting Blog..." : "Post Blog"}
                 </Button>
               </div>
             </form>
