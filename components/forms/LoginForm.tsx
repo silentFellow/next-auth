@@ -9,8 +9,11 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { signIn } from "next-auth/react";
+import { toast } from "sonner";
+import { useState } from "react";
 
 const LoginForm = () => {
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const router = useRouter();
 
   const form = useForm({
@@ -18,26 +21,41 @@ const LoginForm = () => {
     defaultValues: {
       username: "",
       password: ""
-    }
+    },
   })
 
   const onSubmit = async (value: z.infer<typeof userValidation>) => {
     try {
+      setIsSubmitting(true);
       const res = await signIn('credentials', {
         username: value.username,
         password: value.password,
         redirect: false
       });
-      if(res?.ok) router.push("/");
+
+      if (!res || !res.ok) {
+          throw new Error(res?.error ?? "An unknown error occurred");
+      }
+
+      router.push("/");
     } catch(error: any) {
-      console.log(`Error: ${error.message}`)
+      console.log(`Error loging in: ${error.message}`);
+      throw new Error(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(async (value) => {
+          toast.promise(onSubmit(value), {
+            loading: "Signing in...",
+            success: "Login successful",
+            error: (err: any) => `${err.message}`
+          });
+        })}
         className="flex flex-col justify-start gap-6"
       >
         <FormField
@@ -78,7 +96,9 @@ const LoginForm = () => {
           )}
         />
 
-        <Button type="submit" className="bg-black">Login</Button>
+        <Button type="submit" className="bg-black" disabled={isSubmitting}>
+          {isSubmitting ? "Logging in..." : "Login"}
+        </Button>
       </form>
     </Form>
   )

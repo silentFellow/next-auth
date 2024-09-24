@@ -28,7 +28,9 @@ const createBlog = async (
     const db = await connectToDb();
 
     const user = await db.select().from(users).where(eq(users.id, author)).limit(1)
-    if(!user || user.length === 0) throw new Error("author not found");
+    if(!user || user.length === 0) {
+      return { message: "Author not found", status: 404 };
+    }
 
     await db.insert(blogs).values({ author, title, tags, content, thumbnail });
 
@@ -121,7 +123,11 @@ const fetchBlog = async (id: string): Promise<Response<Blog>> => {
 
     const result = Object.values(processedBlogs);
 
-    return { message: "Blogs fetched successfully", status: 200, data: result[0] };
+    if (result.length === 0) {
+      return { message: "Blog not found", status: 404 };
+    }
+
+    return { message: "Blog fetched successfully", status: 200, data: result[0] };
   } catch(error: any) {
     console.error(`Error fetching blogs: ${error.message}`);
     return { message: "Error fetching blogs", status: 500 };
@@ -134,10 +140,10 @@ const uploadImage = async (imageForm: FormData): Promise<Response<string>> => {
     if(!image) throw new Error("No image found");
     const res = await uploadFilesToS3(image);
 
-    return { message: "image uploaded successfully", data: res, status: 200 }
+    return { message: "Image uploaded successfully", data: res, status: 200 }
   } catch(error: any) {
     console.log(`Failed to upload image: ${error.message}`)
-    return { message: "image uploaded successfully", status: 500 }
+    return { message: "Failed to upload image", status: 500 }
   }
 }
 
@@ -147,14 +153,14 @@ const deleteBlog = async (id: string, path: string): Promise<Response> => {
     const result = await db.delete(blogs).where(eq(blogs.id, id)).returning();
 
     if (result.length === 0) {
-      throw new Error("Blog not found");
+      return { message: "Blog not found", status: 404 };
     }
 
     revalidatePath(path);
     return { message: "Blog deleted successfully", status: 200 };
   } catch (error: any) {
     console.error(`Error deleting blog: ${error.message}`);
-    return { message: error.message, status: 500 };
+    return { message: "Failed to delete blog", status: 500 };
   }
 }
 
@@ -177,7 +183,9 @@ const updateBlog = async (
     const db = await connectToDb();
 
     const exists = await db.select().from(blogs).where(eq(blogs.id, id))
-    if (!exists || exists.length === 0) throw new Error("Blog not found");
+    if (!exists || exists.length === 0) {
+      return { message: "Blog not found", status: 404 };
+    }
 
     await db.update(blogs)
         .set({

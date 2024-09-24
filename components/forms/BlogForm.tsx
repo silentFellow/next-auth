@@ -19,6 +19,7 @@ import { useEditorState } from '@/contexts/EditorContext';
 import Image from 'next/image';
 import { isBase64Image } from '@/lib/utils';
 import { IoMdAdd } from "react-icons/io";
+import { toast } from 'sonner';
 
 interface Props {
   user: {
@@ -44,6 +45,10 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
   const [phase, setPhase] = useState<"metadata" | "content">("metadata");
   const [files, setFiles] = useState<File[]>([]);
   const [tagSearch, setTagSearch] = useState<string>("")
+  const [isSubmitting, setIsSubmitting] = useState<{ tag: boolean, blog: boolean }>({
+    tag: false,
+    blog: false
+  })
 
   const { editorState } = useEditorState();
   const pathname = usePathname();
@@ -92,6 +97,14 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
   const handleNext = async () => {
     // title, tags verification
     const isValid = await blogForm.trigger(["title", "tags", "thumbnail"]);
+
+    // validation of max image size
+    const fileSize = Number((files[0].size / 1024 / 1024).toFixed(2))
+    if(fileSize > 4) {
+      toast.error("Thumbnail too large");
+      return;
+    }
+
     if (isValid) {
       setPhase("content");
     }
@@ -127,6 +140,8 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
     // uploading image
     if(!edit || (edit && files.length > 0)) { // Only upload image if it has changed
       try {
+        setIsSubmitting((prev) => ({ ...prev, blog: true }));
+
         const blob = value.thumbnail;
         const hasChanged = isBase64Image(blob);
 
@@ -135,16 +150,21 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
           formData.append('file', files[0]);
 
           const imageRes = await uploadImage(formData);
-          if(imageRes.status === 200 && imageRes.data) value.thumbnail = imageRes.data;
+          if(imageRes.status !== 200 || !imageRes.data) throw new Error(imageRes.message)
+          value.thumbnail = imageRes.data
         }
       } catch(error: any) {
-        console.log(`Failed to upload image: ${error.message}`)
-        return;
+        console.error(`Failed to upload image`)
+        throw new Error("Failed to upload image")
+      } finally {
+        setIsSubmitting((prev) => ({ ...prev, blog: false }));
       }
     }
 
     // posting blog
     try {
+      setIsSubmitting((prev) => ({ ...prev, blog: true }));
+
       let res;
       if(edit) {
         res = await updateBlog(editData?.id as string, pathname, {
@@ -162,21 +182,28 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
           thumbnail: value.thumbnail
         })
       }
-      if(res && res.status === 200) router.push("/")
+      if(!res || res.status !== 200) throw new Error(res.message);
+      router.push("/")
     } catch(error: any) {
-      console.log(`Failed to post blog: ${error.message}`)
+      console.error(`Failed to create blog: ${error.message}`)
+      throw new Error(error.message)
+    } finally {
+      setIsSubmitting((prev) => ({ ...prev, blog: false }));
     }
   }
 
   const tagSubmit = async (value: z.infer<typeof tagValidation>) => {
     try {
+      setIsSubmitting((prev) => ({ ...prev, tag: true }));
+
       const res = await createTag(value.name, pathname);
-      if (res && res.status === 200) {
-        setIsDialogOpen(false); // Close the dialog
-        console.log(res.message); // Ensure the message is logged
-      }
+      if (!res || res.status !== 200) throw new Error(res.message)
+      setIsDialogOpen(false); // Close the dialog
     } catch(error: any) {
       console.error(`Failed to create tag: ${error.message}`)
+      throw new Error(error.message)
+    } finally {
+      setIsSubmitting((prev) => ({ ...prev, tag: true }));
     }
   }
 
@@ -189,7 +216,14 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
             <div className="center">
               <form
                 className="w-[80%] flex-col"
-                onSubmit={blogForm.handleSubmit(blogSubmit)}
+                onSubmit={blogForm.handleSubmit(async (value) => {
+                  toast.promise(blogSubmit(value), {
+                    loading: "posting blogs...",
+                    success: "successfully posted blog",
+                    error: (err: any) => `${err.message}`
+                  })
+                })}
+                // onSubmit={blogForm.handleSubmit(blogSubmit)}
               >
                 <div className="w-full p-4 rounded-md flex flex-col md:flex-row gap-3 bg-[#f5f5f5] shadow-xl">
                   <FormField
@@ -323,14 +357,20 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
                               </DialogHeader>
 
                               <Form {...tagForm}>
-                                <form
-                                  onSubmit={(e) => {
-                                    e.preventDefault();
-                                    tagForm.handleSubmit(tagSubmit)(e);
-                                    e.stopPropagation();
-                                  }}
-                                  className="flex flex-col justify-start gap-6 full"
-                                >
+                                    <form
+                                      onSubmit={(e) => {
+                                        e.preventDefault();
+                                        tagForm.handleSubmit(async (value) => {
+                                          toast.promise(tagSubmit(value), {
+                                            loading: "Creating tag...",
+                                            success: "Successfully created tag",
+                                            error: (err: any) => `${err.message}`
+                                          });
+                                        })(e);
+                                        e.stopPropagation();
+                                      }}
+                                      className="flex flex-col justify-start gap-6 full"
+                                    >
                                   <FormField
                                     control={tagForm.control}
                                     name="name"
@@ -351,7 +391,9 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
                                   />
 
                                   <DialogFooter>
-                                    <Button type="submit">Create</Button>
+                                    <Button type="submit" disabled={isSubmitting.tag}>
+                                      {isSubmitting.tag ? "Creating tag..." : "Create"}
+                                    </Button>
                                   </DialogFooter>
                                 </form>
                               </Form>
@@ -404,7 +446,13 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
         <div className="flex flex-col">
           <Form {...blogForm}>
             <form
-              onSubmit={blogForm.handleSubmit(blogSubmit)}
+              onSubmit={blogForm.handleSubmit(async (value) => {
+                toast.promise(blogSubmit(value), {
+                  loading: "posting blogs...",
+                  success: "successfully posted blog",
+                  error: (err: any) => `${err.message}`
+                })
+              })}
               className="flex flex-col justify-start gap-6 full"
             >
               <div className="w-full">
@@ -428,8 +476,8 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
                   Prev
                 </Button>
 
-                <Button type="submit" className="bg-black">
-                  Post Blog
+                <Button type="submit" disabled={blogForm.formState.isSubmitting} className="bg-black">
+                  {blogForm.formState.isSubmitting ? "Posting Blog..." : "Post Blog"}
                 </Button>
               </div>
             </form>

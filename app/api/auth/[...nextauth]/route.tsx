@@ -34,7 +34,7 @@ export const authOptions: NextAuthOptions = {
           return user;
         } catch (error: any) {
           console.log(`[auth] ${error.message}`);
-          return null;
+          throw new Error(error.message);
         }
       }
     })
