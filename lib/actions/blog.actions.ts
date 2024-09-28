@@ -1,9 +1,9 @@
 'use server'
 
-import { arrayOverlaps, eq, sql } from 'drizzle-orm'
+import { arrayOverlaps, eq, sql, count, desc } from 'drizzle-orm'
 import { tags, blogs, users } from '@/lib/drizzle/schema'
 import connectToDb from '@/lib/drizzle'
-import { Blog } from '@/types'
+import { Blog, Blogs } from '@/types'
 import { uploadFilesToS3 } from '../aws-fileupload'
 import { revalidatePath } from 'next/cache'
 import { Response } from '@/types'
@@ -43,9 +43,25 @@ const createBlog = async (
 }
 
 // fetch blogs
-const fetchBlogs = async (): Promise<Response<Blog[]>> => {
+const fetchBlogs = async (
+  {
+    pageNumber,
+    pageSize = 10
+  }: {
+    pageNumber: number,
+    pageSize?: number
+  }
+): Promise<Response<Blogs>> => {
   try {
     const db = await connectToDb();
+
+    const totalRowsResult = await db.select({ total: count() }).from(blogs);
+    const totalRows = totalRowsResult[0]?.total ?? 0;
+
+    if ((Number(pageNumber) !== 1) && (Math.ceil(totalRows / pageSize) < Number(pageNumber))) return { message: "No more blogs to fetch", status: 404 };
+
+    const skipAmount = (pageNumber - 1) * pageSize;
+
     const blogResult = await db.select({
       blog: blogs,
       tag: tags,
@@ -55,6 +71,9 @@ const fetchBlogs = async (): Promise<Response<Blog[]>> => {
       }
     })
     .from(blogs)
+    .orderBy(desc(blogs.updatedAt))
+    .offset(skipAmount)
+    .limit(pageSize)
     .innerJoin(users, eq(blogs.author, users.id))
     .leftJoin(tags, sql`${blogs.tags} && ARRAY[${tags.id}]::uuid[]`);
 
@@ -79,7 +98,9 @@ const fetchBlogs = async (): Promise<Response<Blog[]>> => {
 
     const result = Object.values(processedBlogs);
 
-    return { message: "Blogs fetched successfully", status: 200, data: result };
+    const hasNext = (skipAmount + pageSize) < totalRows;
+
+    return { message: "Blogs fetched successfully", status: 200, data: { hasNext, blogs: result } };
   } catch(error: any) {
     console.error(`Error fetching blogs: ${error.message}`);
     return { message: "Error fetching blogs", status: 500 };
@@ -205,9 +226,26 @@ const updateBlog = async (
   }
 }
 
-const fetchBlogsOnTags = async (id: string): Promise<Response<Blog[]>> => {
+const fetchBlogsOnTags = async (
+  {
+    id,
+    pageNumber,
+    pageSize = 10
+  } : {
+    id: string;
+    pageNumber: number;
+    pageSize?: number;
+  }
+): Promise<Response<Blogs>> => {
   try {
     const db = await connectToDb();
+
+    const skipAmount = (pageNumber - 1) * pageSize;
+    const totalRowsResult = await db.select({ total: count() }).from(blogs);
+    const totalRows = totalRowsResult[0]?.total ?? 0;
+
+    if ((Number(pageNumber) !== 1) && (Math.ceil(totalRows / pageSize) < Number(pageNumber))) return { message: "No more blogs to fetch", status: 404 };
+
     const blogResult = await db.select({
       blog: blogs,
       tag: tags,
@@ -217,6 +255,9 @@ const fetchBlogsOnTags = async (id: string): Promise<Response<Blog[]>> => {
       }
     })
     .from(blogs)
+    .orderBy(desc(blogs.updatedAt))
+    .offset(skipAmount)
+    .limit(pageSize)
     .where(arrayOverlaps(blogs.tags, [id]))
     .innerJoin(users, eq(blogs.author, users.id))
     .leftJoin(tags, sql`${blogs.tags} && ARRAY[${tags.id}]::uuid[]`);
@@ -241,7 +282,9 @@ const fetchBlogsOnTags = async (id: string): Promise<Response<Blog[]>> => {
 
     const result = Object.values(processedBlogs);
 
-    return { message: "Blogs fetched successfully", status: 200, data: result };
+    const hasNext = (skipAmount + pageSize) < totalRows;
+
+    return { message: "Blogs fetched successfully", status: 200, data: { hasNext, blogs: result } };
   } catch(error: any) {
     console.error(`Error fetching blogs: ${error.message}`);
     return { message: "Error fetching blogs", status: 500 };

@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-const userRoutes: string[] = [ "/read-blog/:blog_id", '/create-blog', "/", "/subscribe", "/edit-blog/:id", "/blog/tag/:id" ];
-const adminRoutes: string[] = [];
-const superAdminRoutes: string[] = [];
+const routes = {
+  admin: ["/create-blog", "/edit-blog"],
+  user: [],
+};
 
 const userRoles = {
-  user: 3,
-  admin: 2,
-  superadmin: 1,
+  admin: 1,
+  user: 2
 };
 
 function matchRoute(route: string, path: string): boolean {
@@ -27,33 +27,21 @@ function matchRoute(route: string, path: string): boolean {
 
 export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-  if (!token || !token.role) {
-    return NextResponse.redirect(new URL('/sign-in', request.url));
-  }
+
+  if (!token || !token.role) return NextResponse.redirect(new URL('/sign-in', request.url));
+  if(token && token.role && request.nextUrl.pathname === "/sign-in") return NextResponse.redirect(new URL('/', request.url));
 
   const role = token.role as keyof typeof userRoles;
 
-  const isSuperAdminRoute = superAdminRoutes.some((route) => matchRoute(route, request.nextUrl.pathname));
-  const isAdminRoute = adminRoutes.some((route) => matchRoute(route, request.nextUrl.pathname));
-  const isUserRoute = userRoutes.some((route) => matchRoute(route, request.nextUrl.pathname));
+  const isAdminRoute = routes.admin.some((route) => matchRoute(route, request.nextUrl.pathname));
+  const isUserRoute = routes.user.some((route) => matchRoute(route, request.nextUrl.pathname));
 
-  if (isSuperAdminRoute && userRoles[role] <= userRoles["superadmin"]) {
-    return NextResponse.next();
-  }
+  if (isAdminRoute && userRoles[role] >= userRoles["admin"]) return NextResponse.next();
+  if (isUserRoute && userRoles[role] >= userRoles["user"]) return NextResponse.next();
 
-  if (isAdminRoute && userRoles[role] <= userRoles["admin"]) {
-    return NextResponse.next();
-  }
-
-  if (isUserRoute && userRoles[role] <= userRoles["user"]) {
-    return NextResponse.next();
-  }
-
-  return NextResponse.redirect(new URL('/sign-in', request.url));
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next|auth|sign-in|sign-up|api/auth).*)", // Exclude _next and auth routes
-  ]
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
 };

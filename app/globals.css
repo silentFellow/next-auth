@@ -27,3 +27,7 @@
 .head {
   @apply font-extrabold leading-[140%] text-xl text-[rgb(33,33,33)];
 }
+
+.pagination {
+  @apply mt-10 flex w-full items-center justify-center gap-5;
+}

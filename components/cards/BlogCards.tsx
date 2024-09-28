@@ -12,6 +12,8 @@ import { MdDeleteOutline } from "react-icons/md";
 
 import { usePathname } from "next/navigation";
 import { deleteBlog } from "@/lib/actions/blog.actions";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   authUserId: string | null;
@@ -31,13 +33,20 @@ interface Props {
 const BlogCards = ({ authUserId, author, id, title, thumbnail, tags }: Props) => {
   const path = usePathname();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(true);
 
   const handleDelete = async () => {
     try {
+      setIsDeleting(true);
       const res = await deleteBlog(id, path);
-      if(res.status === 200) setIsDialogOpen(false);
+      if(res.status !== 200) throw new Error(res.message);
+      setIsDialogOpen(false);
     } catch(error: any) {
       console.error(`Error deleting blog: ${error.message}`);
+      throw new Error(error.message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -50,8 +59,12 @@ const BlogCards = ({ authUserId, author, id, title, thumbnail, tags }: Props) =>
           alt="Thumbnail"
           priority
           fill
-          className="rounded-md"
+          onLoadStart={() => setIsImageLoaded(false)}
+          onLoad={() => setIsImageLoaded(true)}
         />
+        {!isImageLoaded && (
+          <Skeleton className="full bg-[rgb(200,200,200)]" />
+        )}
       </CardContent>
 
       {/* title-tag footer section */}
@@ -90,7 +103,19 @@ const BlogCards = ({ authUserId, author, id, title, thumbnail, tags }: Props) =>
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
-                    <Button type="submit" onClick={handleDelete}>Delete Blog</Button>
+                    <Button
+                      type="submit"
+                      disabled={isDeleting}
+                      onClick={() => {
+                        toast.promise(handleDelete(), {
+                          loading: "Deleting blog...",
+                          success: "Blog deleted successfully",
+                          error: (err: any) => `${err.message}`
+                        })
+                      }}
+                    >
+                      Delete Blog
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -116,7 +141,19 @@ const BlogCards = ({ authUserId, author, id, title, thumbnail, tags }: Props) =>
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
-                    <Button type="submit" onClick={handleDelete}>Delete Blog</Button>
+                    <Button
+                      type="submit"
+                      disabled={isDeleting}
+                      onClick={() => {
+                        toast.promise(handleDelete(), {
+                          loading: "Deleting blog...",
+                          success: "Blog deleted successfully",
+                          error: (err: any) => `${err.message}`
+                        })
+                      }}
+                    >
+                      Delete Blog
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>

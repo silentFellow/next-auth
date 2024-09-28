@@ -3,20 +3,26 @@ import { Button } from "@/components/ui/button";
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { fetchBlogsOnTags } from "@/lib/actions/blog.actions";
-import { Blog, Session, Tag, Response } from "@/types";
+import { Blog, Blogs, Session, Tag, Response } from "@/types";
 import Link from "next/link";
 import BlogCards from "@/components/cards/BlogCards";
 import { fetchTag } from "@/lib/actions/tag.actions";
+import Pagination from "@/components/shared/Pagination";
 
-const BlogsOnTags = async ({ params }: { params: { id: string } }) => {
+const BlogsOnTags = async ({ params, searchParams }: { params: { id: string }, searchParams: { "page-number": number, "page-size"?: number } }) => {
   if(!params.id) return null;
+  if(!searchParams["page-number"]) redirect(`/blog/tag/${params.id}?page-number=1`);
 
   const [session, blogs, tag] = await Promise.all([
     getServerSession(authOptions),
-    fetchBlogsOnTags(params.id),
+    fetchBlogsOnTags({
+      id: params.id,
+      pageNumber: searchParams["page-number"],
+    }),
     fetchTag(params.id)
-  ]) as [Session | null, Response<Blog[]>, Response<Tag>];
+  ]) as [Session | null, Response<Blogs>, Response<Tag>];
 
+  if(blogs.status === 404) redirect(`/blog/tag/${params.id}?page-number=1`);
   if(blogs.status !== 200 || !blogs.data) redirect("/");
   if(tag.status !== 200 || !tag.data) redirect("/");
 
@@ -31,11 +37,11 @@ const BlogsOnTags = async ({ params }: { params: { id: string } }) => {
       </div>
 
       <article className="mt-9">
-        {blogs.data.length === 0 ? (
+        {blogs.data.blogs.length === 0 ? (
           <p className="text-center">No blog found...</p>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {blogs?.data?.map((blog: Blog) => (
+            {blogs?.data?.blogs?.map((blog: Blog) => (
               <BlogCards
                 key={blog.id}
                 authUserId={session?.user?.id || null}
@@ -48,6 +54,12 @@ const BlogsOnTags = async ({ params }: { params: { id: string } }) => {
             ))}
           </div>
         )}
+
+        <Pagination
+          path={`/blog/tag/${params.id}`}
+          pageNumber={searchParams?.["page-number"] ? +searchParams["page-number"] : 1}
+          isNext={blogs?.data?.hasNext}
+        />
       </article>
     </>
   )

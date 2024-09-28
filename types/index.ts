@@ -4,6 +4,26 @@ export interface Response<T = undefined> {
   data?: T;
 }
 
+export interface Blogs {
+  hasNext: boolean;
+  blogs: {
+    id: string;
+    title: string;
+    content: string;
+    thumbnail: string;
+    createdAt: string;
+    updatedAt: string;
+    author: {
+      id: string;
+      username: string;
+    };
+    tags: {
+      id: string;
+      name: string;
+    }[];
+  }[]
+}
+
 export interface Blog {
   id: string;
   title: string;
@@ -20,7 +40,6 @@ export interface Blog {
     name: string;
   }[];
 }
-
 
 export interface Tag {
   id: string;
@@ -40,7 +59,7 @@ export interface Session {
     email?: string;
     image?: string;
     id: string;
-    role: "user" | "admin" | "superadmin";
+    role: "user" | "admin";
     username: string;
   }
 }

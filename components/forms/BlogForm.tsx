@@ -97,6 +97,7 @@ const BlogForm = ({ user, tags, edit, editData }: Props) => {
   const handleNext = async () => {
     // title, tags verification
     const isValid = await blogForm.trigger(["title", "tags", "thumbnail"]);
+    if(!isValid) return;
 
     // validation of max image size
     const fileSize = Number((files[0].size / 1024 / 1024).toFixed(2))
